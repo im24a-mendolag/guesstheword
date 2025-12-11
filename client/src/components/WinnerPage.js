@@ -84,6 +84,17 @@ function WinnerPage() {
                 ? `Final Score: ${roundWinner.score} points`
                 : `Round Score: +${roundWinner.roundScore || 0} points | Total: ${roundWinner.score} points`}
             </div>
+            {lobby.gameState.currentWord && (
+              <div style={{ 
+                marginTop: '15px', 
+                fontSize: '1.3em', 
+                color: '#667eea',
+                fontWeight: '600',
+                letterSpacing: '3px'
+              }}>
+                The word was: <strong style={{ color: '#28a745' }}>{lobby.gameState.currentWord}</strong>
+              </div>
+            )}
             <p style={{ marginTop: '20px', fontSize: '1.2em', color: '#666' }}>
               {lobby.gameState.status === 'ended' 
                 ? 'Congratulations! You won the game!'
@@ -97,7 +108,7 @@ function WinnerPage() {
             </h2>
             {lobby.gameState.currentWord && (
               <p style={{ marginTop: '20px', fontSize: '1.5em', color: '#333' }}>
-                The word was: <strong>{lobby.gameState.currentWord}</strong>
+                The word was: <strong style={{ color: '#28a745' }}>{lobby.gameState.currentWord}</strong>
               </p>
             )}
           </div>

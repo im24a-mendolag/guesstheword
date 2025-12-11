@@ -264,7 +264,7 @@ function GamePage() {
         <h2>Hints:</h2>
         {hints.length === 0 ? (
           <p style={{ color: '#999', fontStyle: 'italic' }}>
-            Hints will appear every 15 seconds...
+            First hint will appear shortly...
           </p>
         ) : (
           hints.map((hint, index) => (
@@ -282,7 +282,7 @@ function GamePage() {
             id="guess"
             type="text"
             value={guess}
-            onChange={(e) => setGuess(e.target.value.toUpperCase())}
+            onChange={(e) => setGuess(e.target.value.toLowerCase())}
             placeholder="Enter your guess"
             disabled={timeRemaining === 0}
             autoFocus

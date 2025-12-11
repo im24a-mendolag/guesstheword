@@ -286,7 +286,14 @@ function startHintTimer(lobbyId, lobby) {
     return;
   }
   
-  let hintIndex = 0;
+  // Send first hint immediately
+  const firstHint = wordData.hints[0];
+  lobby.gameState.hints.push(firstHint);
+  lobby.gameState.hintIndex = 1;
+  io.to(lobbyId).emit('hint', firstHint);
+  console.log(`Hint 1 sent immediately to lobby ${lobbyId}: ${firstHint}`);
+  
+  let hintIndex = 1; // Start from second hint
   
   const hintTimer = setInterval(() => {
     const lobby = gameManager.getLobby(lobbyId);
