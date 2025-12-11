@@ -47,15 +47,17 @@ function GamePage() {
     // Set up all event listeners FIRST before emitting joinLobby
     const handleLobbyJoined = (lobbyData) => {
       console.log('Lobby joined in GamePage:', lobbyData);
+      console.log('Game state status:', lobbyData.gameState?.status);
       setLobby(lobbyData);
-      if (lobbyData.gameState.status === 'playing') {
+      if (lobbyData.gameState && lobbyData.gameState.status === 'playing') {
         console.log('Game is already playing, setting up game state');
         const settings = lobbyData.settings || { timeLimit: 60, hintInterval: 15 };
         setGameState(lobbyData.gameState);
         setTimeRemaining(lobbyData.gameState.timeRemaining || settings.timeLimit);
         setHints(lobbyData.gameState.hints || []);
-        if (!timerIntervalRef.current && lobbyData.gameState.startTime) {
-          console.log('Starting timer from lobbyJoined');
+        // Always start timer if game is playing, even if one exists (reset it)
+        if (lobbyData.gameState.startTime) {
+          console.log('Starting timer from lobbyJoined, startTime:', lobbyData.gameState.startTime);
           startTimer(lobbyData.gameState, settings);
         }
       }
@@ -111,8 +113,34 @@ function GamePage() {
     });
 
     // Now emit joinLobby after all listeners are set up
+    // Small delay to ensure socket is fully connected
     const playerName = localStorage.getItem('playerName') || 'Player';
-    socket.emit('joinLobby', { lobbyId, playerName });
+    
+    const joinLobby = () => {
+      if (socket.connected) {
+        console.log('Emitting joinLobby for GamePage');
+        socket.emit('joinLobby', { lobbyId, playerName });
+      } else {
+        console.log('Socket not connected, waiting...');
+        socket.once('connect', () => {
+          console.log('Socket connected, emitting joinLobby');
+          socket.emit('joinLobby', { lobbyId, playerName });
+        });
+      }
+    };
+    
+    // Try to join immediately, or wait for connection
+    if (socket.connected) {
+      joinLobby();
+    } else {
+      socket.once('connect', joinLobby);
+      // Also try after a short delay as fallback
+      setTimeout(() => {
+        if (socket.connected) {
+          joinLobby();
+        }
+      }, 100);
+    }
 
     return () => {
       socket.off('lobbyJoined', handleLobbyJoined);
@@ -142,8 +170,16 @@ function GamePage() {
       <div className="container loading">
         {gameState?.status === 'ended' ? 'Game has ended' : 'Waiting for game to start...'}
         {gameState && (
-          <div style={{ marginTop: '20px', color: '#666' }}>
+          <div style={{ marginTop: '20px', color: '#666', fontSize: '14px' }}>
             Status: {gameState.status}
+            {lobby && lobby.gameState && (
+              <div>Lobby game state: {lobby.gameState.status}</div>
+            )}
+          </div>
+        )}
+        {!gameState && lobby && (
+          <div style={{ marginTop: '20px', color: '#666', fontSize: '14px' }}>
+            Lobby loaded, waiting for game state...
           </div>
         )}
       </div>
