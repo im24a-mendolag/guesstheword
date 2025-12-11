@@ -118,12 +118,12 @@ function GamePage() {
     
     const joinLobby = () => {
       if (socket.connected) {
-        console.log('Emitting joinLobby for GamePage');
+        console.log('Emitting joinLobby for GamePage, lobbyId:', lobbyId);
         socket.emit('joinLobby', { lobbyId, playerName });
       } else {
         console.log('Socket not connected, waiting...');
         socket.once('connect', () => {
-          console.log('Socket connected, emitting joinLobby');
+          console.log('Socket connected, emitting joinLobby, lobbyId:', lobbyId);
           socket.emit('joinLobby', { lobbyId, playerName });
         });
       }

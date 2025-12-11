@@ -37,15 +37,17 @@ class GameManager {
       return { success: false, message: 'Lobby not found' };
     }
     
-    if (lobby.gameState.status === 'playing') {
-      return { success: false, message: 'Game is already in progress' };
-    }
-    
     // Check if player is already in the lobby
     const existingPlayer = lobby.players.find(p => p.id === playerId);
     if (existingPlayer) {
       // Player is already in lobby, just return the lobby (for reconnection/room joining)
+      // This works even if game is playing - allows rejoining to see game state
       return { success: true, lobby, alreadyInLobby: true };
+    }
+    
+    // Only block new joins if game is playing
+    if (lobby.gameState.status === 'playing') {
+      return { success: false, message: 'Game is already in progress. Cannot join mid-game.' };
     }
     
     if (lobby.players.length >= lobby.settings.maxPlayers) {
