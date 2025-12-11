@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
+const path = require('path');
 const { GameManager } = require('./gameManager');
 const { WordDatabase } = require('./wordDatabase');
 
@@ -10,10 +11,18 @@ app.use(cors());
 app.use(express.json());
 
 const server = http.createServer(app);
+
+// CORS configuration for Socket.io
+// In production, allow all origins if ALLOWED_ORIGINS is not set (for Railway)
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
+  : (process.env.NODE_ENV === 'production' ? true : ['http://localhost:3000']);
+
 const io = socketIo(server, {
   cors: {
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST"]
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
@@ -27,6 +36,17 @@ const gameTimers = new Map();
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
+
+// Serve static files from React app in production
+if (process.env.NODE_ENV === 'production') {
+  const buildPath = path.join(__dirname, '../client/build');
+  app.use(express.static(buildPath));
+  
+  // Handle React routing, return all requests to React app
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(buildPath, 'index.html'));
+  });
+}
 
 // Socket.io connection handling
 io.on('connection', (socket) => {

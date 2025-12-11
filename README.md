@@ -119,6 +119,51 @@ When installing dependencies, you may see:
 
 These warnings can be safely ignored for development purposes. The production build is not affected.
 
+## Deployment to Railway
+
+### Prerequisites
+- Railway account (sign up at [railway.app](https://railway.app))
+- GitHub repository with your code
+
+### Steps
+
+1. **Connect your repository to Railway**
+   - Go to Railway dashboard
+   - Click "New Project"
+   - Select "Deploy from GitHub repo"
+   - Choose your repository
+
+2. **Configure Environment Variables**
+   In Railway, go to your service → Variables and add:
+   ```
+   NODE_ENV=production
+   PORT=5000
+   ALLOWED_ORIGINS=https://your-app.railway.app
+   REACT_APP_SERVER_URL=https://your-app.railway.app
+   ```
+   Replace `your-app.railway.app` with your actual Railway domain.
+
+3. **Deploy**
+   - Railway will automatically detect the Dockerfile
+   - It will build the Docker image
+   - The app will be deployed and you'll get a URL
+
+4. **Update CORS after deployment**
+   - Once deployed, Railway will give you a domain (e.g., `your-app.up.railway.app`)
+   - Update the `ALLOWED_ORIGINS` variable to include this domain
+   - Redeploy if needed
+
+### Alternative: Using Nixpacks
+
+If Docker doesn't work, Railway can use the `nixpacks.toml` file instead. Railway will automatically detect it and use Nixpacks for building.
+
+### Troubleshooting
+
+- **Build fails**: Make sure all dependencies are listed in `package.json`
+- **Socket.io not connecting**: Check that `ALLOWED_ORIGINS` includes your Railway domain
+- **Static files not loading**: Ensure `NODE_ENV=production` is set
+- **Port issues**: Railway automatically sets the `PORT` environment variable
+
 ## License
 
 ISC
