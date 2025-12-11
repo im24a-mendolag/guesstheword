@@ -45,8 +45,16 @@ function HomePage() {
     });
 
     socket.once('lobbyError', (data) => {
-      setError(data.message);
+      console.error('Lobby error:', data);
+      setError(data.message || 'Failed to join lobby');
     });
+    
+    // Add timeout for join attempt
+    setTimeout(() => {
+      if (!socket.connected) {
+        setError('Failed to connect to server. Please check your connection.');
+      }
+    }, 5000);
   };
 
   return (

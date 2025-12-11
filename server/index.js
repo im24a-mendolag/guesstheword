@@ -23,7 +23,9 @@ const io = socketIo(server, {
     origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true
-  }
+  },
+  transports: ['websocket', 'polling'], // Allow both transports
+  allowEIO3: true // Allow older clients
 });
 
 const gameManager = new GameManager();
@@ -51,6 +53,11 @@ if (process.env.NODE_ENV === 'production') {
 // Socket.io connection handling
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
+  console.log('Connection origin:', socket.handshake.headers.origin || 'unknown');
+  
+  socket.on('error', (error) => {
+    console.error('Socket error:', error);
+  });
 
   // Create a new lobby
   socket.on('createLobby', (data) => {
@@ -66,6 +73,13 @@ io.on('connection', (socket) => {
   // Join an existing lobby
   socket.on('joinLobby', (data) => {
     const { lobbyId, playerName } = data;
+    console.log(`Join lobby request: ${playerName} trying to join ${lobbyId}`);
+    
+    if (!lobbyId || !playerName) {
+      socket.emit('lobbyError', { message: 'Lobby ID and player name are required' });
+      return;
+    }
+    
     const result = gameManager.joinLobby(lobbyId, socket.id, playerName);
     
     if (result.success) {
@@ -74,11 +88,12 @@ io.on('connection', (socket) => {
       // Only broadcast update if it's a new player joining, not a rejoin
       if (!result.alreadyInLobby) {
         io.to(lobbyId).emit('lobbyUpdated', result.lobby);
-        console.log(`${playerName} joined lobby ${lobbyId}`);
+        console.log(`${playerName} joined lobby ${lobbyId} (${result.lobby.players.length} players)`);
       } else {
         console.log(`${playerName} rejoined lobby ${lobbyId}`);
       }
     } else {
+      console.error(`Failed to join lobby: ${result.message}`);
       socket.emit('lobbyError', { message: result.message });
     }
   });

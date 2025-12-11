@@ -38,7 +38,24 @@ function LobbyPage() {
     });
 
     socket.on('lobbyError', (data) => {
-      setError(data.message);
+      console.error('Lobby error:', data);
+      setError(data.message || 'An error occurred');
+    });
+    
+    // Log connection status
+    socket.on('connect', () => {
+      console.log('Connected to server:', socket.id);
+      setError(''); // Clear errors on successful connection
+    });
+    
+    socket.on('disconnect', (reason) => {
+      console.error('Disconnected from server:', reason);
+      setError('Disconnected from server. Please refresh the page.');
+    });
+    
+    socket.on('connect_error', (error) => {
+      console.error('Connection error:', error);
+      setError('Failed to connect to server. Please check your connection.');
     });
 
     return () => {

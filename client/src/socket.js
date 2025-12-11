@@ -23,7 +23,23 @@ const socket = io(serverUrl, {
   autoConnect: true,
   reconnection: true,
   reconnectionDelay: 1000,
-  reconnectionAttempts: 5
+  reconnectionAttempts: 5,
+  transports: ['websocket', 'polling'], // Try websocket first, fallback to polling
+  upgrade: true,
+  rememberUpgrade: true
+});
+
+// Add connection event listeners for debugging
+socket.on('connect', () => {
+  console.log('Socket connected:', socket.id);
+});
+
+socket.on('disconnect', (reason) => {
+  console.log('Socket disconnected:', reason);
+});
+
+socket.on('connect_error', (error) => {
+  console.error('Socket connection error:', error);
 });
 
 export default socket;
