@@ -287,11 +287,13 @@ function GamePage() {
         </div>
       )}
 
-      {message && (
-        <div className={message.includes('correctly') ? 'success-message' : 'error-message'}>
-          {message}
-        </div>
-      )}
+      <div style={{ minHeight: '52px', margin: '10px 0' }}>
+        {message && (
+          <div className={message.includes('correctly') ? 'success-message' : 'error-message'}>
+            {message}
+          </div>
+        )}
+      </div>
 
       <div style={{ 
         display: 'grid', 

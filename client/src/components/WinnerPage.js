@@ -106,7 +106,7 @@ function WinnerPage() {
                 ? `Final Score: ${roundWinner.score} points`
                 : `Round Score: +${roundWinner.roundScore || 0} points | Total: ${roundWinner.score} points`}
             </div>
-            {lobby.gameState.currentWord && (
+            {lobby.gameState.currentWord && lobby.gameState.status !== 'ended' && (
               <div style={{ 
                 marginTop: '15px', 
                 fontSize: '1.3em', 
@@ -128,7 +128,7 @@ function WinnerPage() {
             <h2 style={{ color: '#666', marginTop: '20px' }}>
               No one guessed the word in time!
             </h2>
-            {lobby.gameState.currentWord && (
+            {lobby.gameState.currentWord && lobby.gameState.status !== 'ended' && (
               <p style={{ marginTop: '20px', fontSize: '1.5em', color: '#333' }}>
                 The word was: <strong style={{ color: '#28a745' }}>{lobby.gameState.currentWord}</strong>
               </p>
