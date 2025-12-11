@@ -11,8 +11,10 @@ function GamePage() {
   const [message, setMessage] = useState('');
   const [gameState, setGameState] = useState(null);
   const [lobby, setLobby] = useState(null);
+  const [guessHistory, setGuessHistory] = useState([]);
   const timerIntervalRef = useRef(null);
   const lobbyRef = useRef(null);
+  const chatRef = useRef(null);
 
   // Update ref when lobby changes
   useEffect(() => {
@@ -55,6 +57,8 @@ function GamePage() {
         setGameState(lobbyData.gameState);
         setTimeRemaining(lobbyData.gameState.timeRemaining || settings.timeLimit);
         setHints(lobbyData.gameState.hints || []);
+        // Reset guess history when joining a new game
+        setGuessHistory([]);
         // Always start timer if game is playing, even if one exists (reset it)
         if (lobbyData.gameState.startTime) {
           console.log('Starting timer from lobbyJoined, startTime:', lobbyData.gameState.startTime);
@@ -67,6 +71,8 @@ function GamePage() {
       console.log('Game started event received:', gameStateData);
       const settings = gameStateData.settings || lobbyRef.current?.settings || { timeLimit: 60, hintInterval: 15 };
       
+      // Reset guess history for new round
+      setGuessHistory([]);
       setGameState(gameStateData);
       setTimeRemaining(gameStateData.timeRemaining || settings.timeLimit);
       setHints([]);
@@ -123,6 +129,19 @@ function GamePage() {
       setHints((prev) => [...prev, hint]);
     });
 
+    socket.on('playerGuess', (data) => {
+      setGuessHistory((prev) => [...prev, {
+        ...data,
+        timestamp: Date.now()
+      }]);
+      // Auto-scroll chat to bottom
+      setTimeout(() => {
+        if (chatRef.current) {
+          chatRef.current.scrollTop = chatRef.current.scrollHeight;
+        }
+      }, 100);
+    });
+
     // Now emit joinLobby after all listeners are set up
     // Small delay to ensure socket is fully connected
     const playerName = localStorage.getItem('playerName') || 'Player';
@@ -160,6 +179,7 @@ function GamePage() {
       socket.off('correctGuess');
       socket.off('incorrectGuess');
       socket.off('hint');
+      socket.off('playerGuess');
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
         timerIntervalRef.current = null;
@@ -260,19 +280,78 @@ function GamePage() {
         </div>
       )}
 
-      <div className="hints-container">
-        <h2>Hints:</h2>
-        {hints.length === 0 ? (
-          <p style={{ color: '#999', fontStyle: 'italic' }}>
-            First hint will appear shortly...
-          </p>
-        ) : (
-          hints.map((hint, index) => (
-            <div key={index} className="hint-item">
-              {index + 1}. {hint}
-            </div>
-          ))
-        )}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: window.innerWidth < 768 ? '1fr' : '1fr 1fr', 
+        gap: '20px', 
+        marginTop: '20px' 
+      }}>
+        <div className="hints-container">
+          <h2>Hints:</h2>
+          {hints.length === 0 ? (
+            <p style={{ color: '#999', fontStyle: 'italic' }}>
+              First hint will appear shortly...
+            </p>
+          ) : (
+            hints.map((hint, index) => (
+              <div key={index} className="hint-item">
+                {index + 1}. {hint}
+              </div>
+            ))
+          )}
+        </div>
+
+        <div style={{ 
+          background: '#f8f9fa', 
+          borderRadius: '8px', 
+          padding: '15px',
+          maxHeight: '300px',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          <h2 style={{ marginBottom: '10px', fontSize: '1.2em' }}>Guess History</h2>
+          <div 
+            ref={chatRef}
+            style={{ 
+              overflowY: 'auto',
+              flex: 1,
+              minHeight: '100px',
+              maxHeight: '250px'
+            }}
+          >
+            {guessHistory.length === 0 ? (
+              <p style={{ color: '#999', fontStyle: 'italic', fontSize: '14px' }}>
+                No guesses yet...
+              </p>
+            ) : (
+              guessHistory.map((item, index) => (
+                <div 
+                  key={index} 
+                  style={{ 
+                    marginBottom: '8px',
+                    padding: '6px 10px',
+                    background: item.correct ? '#d4edda' : '#fff',
+                    borderRadius: '4px',
+                    borderLeft: `3px solid ${item.correct ? '#28a745' : '#dee2e6'}`,
+                    fontSize: '14px'
+                  }}
+                >
+                  <strong style={{ color: item.correct ? '#28a745' : '#667eea' }}>
+                    {item.playerName}:
+                  </strong>{' '}
+                  <span style={{ color: item.correct ? '#155724' : '#333' }}>
+                    {item.guess}
+                  </span>
+                  {item.correct && (
+                    <span style={{ color: '#28a745', marginLeft: '5px', fontWeight: 'bold' }}>
+                      ✓
+                    </span>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </div>
 
       <form onSubmit={handleSubmitGuess} className="guess-input-container">

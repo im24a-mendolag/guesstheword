@@ -33,10 +33,25 @@ function WinnerPage() {
       if (gameStateData.winner) {
         setRoundWinner(gameStateData.winner);
       }
+      // Update lobby state when game ends
+      setLobby(prevLobby => {
+        if (prevLobby) {
+          return {
+            ...prevLobby,
+            gameState: gameStateData
+          };
+        }
+        return prevLobby;
+      });
     });
 
     socket.on('gameStarted', () => {
       navigate(`/game/${lobbyId}`);
+    });
+
+    socket.on('lobbyError', (data) => {
+      console.error('Lobby error:', data);
+      alert(data.message || 'An error occurred');
     });
 
     return () => {

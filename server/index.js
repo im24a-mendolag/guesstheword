@@ -168,6 +168,19 @@ io.on('connection', (socket) => {
     const result = gameManager.submitGuess(lobbyId, socket.id, guess);
     
     if (result.success) {
+      // Get player name for chat
+      const lobby = gameManager.getLobby(lobbyId);
+      const player = lobby ? lobby.players.find(p => p.id === socket.id) : null;
+      const playerName = player ? player.name : 'Unknown';
+      
+      // Broadcast guess to all players (for chat)
+      io.to(lobbyId).emit('playerGuess', {
+        playerId: socket.id,
+        playerName: playerName,
+        guess: guess,
+        correct: result.correct
+      });
+      
       if (result.correct) {
         // Player guessed correctly
         io.to(lobbyId).emit('correctGuess', {
@@ -236,7 +249,19 @@ io.on('connection', (socket) => {
   // End game completely (host only)
   socket.on('endGame', (data) => {
     const { lobbyId } = data;
-    const result = gameManager.endGame(lobbyId, socket.id);
+    const lobby = gameManager.getLobby(lobbyId);
+    
+    if (!lobby) {
+      socket.emit('lobbyError', { message: 'Lobby not found' });
+      return;
+    }
+    
+    if (lobby.hostId !== socket.id) {
+      socket.emit('lobbyError', { message: 'Only the host can end the game' });
+      return;
+    }
+    
+    const result = gameManager.endGame(lobbyId);
     
     if (result.success) {
       const timers = gameTimers.get(lobbyId);
@@ -246,6 +271,7 @@ io.on('connection', (socket) => {
         gameTimers.delete(lobbyId);
       }
       io.to(lobbyId).emit('gameEnded', result.gameState);
+      console.log(`Game ended in lobby ${lobbyId}`);
     } else {
       socket.emit('lobbyError', { message: result.message });
     }
