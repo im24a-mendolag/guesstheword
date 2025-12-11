@@ -7,6 +7,12 @@ cmds = [
   'cd client && npm install && npm run build'
 ]
 
+[phases.build]
+cmds = []
+
 [start]
 cmd = 'node server/index.js'
+
+[staticAssets]
+'client/build' = '/'
 
