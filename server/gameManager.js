@@ -16,12 +16,14 @@ class GameManager {
         maxPlayers: 8
       },
       gameState: {
-        status: 'waiting', // waiting, playing, ended
+        status: 'waiting', // waiting, playing, roundEnded, ended
         currentWord: null,
         hints: [],
         timeRemaining: null,
         startTime: null,
-        winner: null
+        winner: null,
+        round: 0,
+        roundWinner: null
       }
     };
     
@@ -103,7 +105,7 @@ class GameManager {
     // Select a random word
     const wordData = wordDatabase.getRandomWord();
     
-    // Reset game state
+    // Start first round
     lobby.gameState = {
       status: 'playing',
       currentWord: wordData.word,
@@ -112,13 +114,17 @@ class GameManager {
       hintIndex: 0,
       timeRemaining: lobby.settings.timeLimit,
       startTime: Date.now(),
-      winner: null
+      winner: null,
+      round: 1,
+      roundWinner: null
     };
     
-    // Reset player scores
-    lobby.players.forEach(player => {
-      player.score = 0;
-    });
+    // Reset player scores only on first round
+    if (lobby.gameState.round === 1) {
+      lobby.players.forEach(player => {
+        player.score = 0;
+      });
+    }
     
     return { success: true, gameState: lobby.gameState };
   }
@@ -149,16 +155,65 @@ class GameManager {
       const score = Math.max(1, Math.floor(timeRemaining / 10));
       
       player.score += score;
-      lobby.gameState.winner = {
+      lobby.gameState.roundWinner = {
         id: playerId,
         name: player.name,
-        score: player.score
+        score: player.score,
+        roundScore: score
       };
       
-      return { success: true, correct: true, playerName: player.name };
+      return { success: true, correct: true, playerName: player.name, roundWinner: lobby.gameState.roundWinner };
     }
     
     return { success: true, correct: false };
+  }
+
+  endRound(lobbyId) {
+    const lobby = this.lobbies.get(lobbyId);
+    
+    if (!lobby) {
+      return { success: false, message: 'Lobby not found' };
+    }
+    
+    lobby.gameState.status = 'roundEnded';
+    lobby.gameState.timeRemaining = 0;
+    
+    return { success: true, gameState: lobby.gameState };
+  }
+
+  startNextRound(lobbyId, playerId, wordDatabase) {
+    const lobby = this.lobbies.get(lobbyId);
+    
+    if (!lobby) {
+      return { success: false, message: 'Lobby not found' };
+    }
+    
+    if (lobby.hostId !== playerId) {
+      return { success: false, message: 'Only the host can start the next round' };
+    }
+    
+    if (lobby.gameState.status !== 'roundEnded') {
+      return { success: false, message: 'Round is not ended' };
+    }
+    
+    // Select a new random word
+    const wordData = wordDatabase.getRandomWord();
+    
+    // Start next round
+    lobby.gameState = {
+      status: 'playing',
+      currentWord: wordData.word,
+      wordData: wordData,
+      hints: [],
+      hintIndex: 0,
+      timeRemaining: lobby.settings.timeLimit,
+      startTime: Date.now(),
+      winner: null,
+      round: lobby.gameState.round + 1,
+      roundWinner: null
+    };
+    
+    return { success: true, gameState: lobby.gameState };
   }
 
   endGame(lobbyId) {
@@ -167,6 +222,14 @@ class GameManager {
     if (!lobby) {
       return { success: false, message: 'Lobby not found' };
     }
+    
+    // Find overall winner (player with highest score)
+    const sortedPlayers = [...lobby.players].sort((a, b) => b.score - a.score);
+    lobby.gameState.winner = {
+      id: sortedPlayers[0].id,
+      name: sortedPlayers[0].name,
+      score: sortedPlayers[0].score
+    };
     
     lobby.gameState.status = 'ended';
     lobby.gameState.timeRemaining = 0;

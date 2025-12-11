@@ -143,14 +143,14 @@ io.on('connection', (socket) => {
       // Start hint timer
       startHintTimer(lobbyId, lobby);
       
-      // Start game end timer
+      // Start round end timer
       const gameEndTimer = setTimeout(() => {
         const timers = gameTimers.get(lobbyId);
         if (timers && timers.hintTimer) {
           clearInterval(timers.hintTimer);
         }
-        const endResult = gameManager.endGame(lobbyId);
-        io.to(lobbyId).emit('gameEnded', endResult.gameState);
+        const endResult = gameManager.endRound(lobbyId);
+        io.to(lobbyId).emit('roundEnded', endResult.gameState);
         gameTimers.delete(lobbyId);
       }, lobby.settings.timeLimit * 1000);
       
@@ -173,7 +173,8 @@ io.on('connection', (socket) => {
         io.to(lobbyId).emit('correctGuess', {
           playerId: socket.id,
           playerName: result.playerName,
-          guess: guess
+          guess: guess,
+          roundWinner: result.roundWinner
         });
         
         // Clear timers
@@ -184,12 +185,67 @@ io.on('connection', (socket) => {
           gameTimers.delete(lobbyId);
         }
         
-        // End game
-        const endResult = gameManager.endGame(lobbyId);
-        io.to(lobbyId).emit('gameEnded', endResult.gameState);
+        // End round (not full game)
+        const endResult = gameManager.endRound(lobbyId);
+        io.to(lobbyId).emit('roundEnded', endResult.gameState);
       } else {
         socket.emit('incorrectGuess', { message: 'Incorrect guess!' });
       }
+    } else {
+      socket.emit('lobbyError', { message: result.message });
+    }
+  });
+
+  // Start next round (host only)
+  socket.on('startNextRound', (data) => {
+    const { lobbyId } = data;
+    const result = gameManager.startNextRound(lobbyId, socket.id, wordDatabase);
+    
+    if (result.success) {
+      const lobby = gameManager.getLobby(lobbyId);
+      const gameStartData = {
+        ...result.gameState,
+        settings: lobby.settings,
+        startTime: result.gameState.startTime || Date.now()
+      };
+      io.to(lobbyId).emit('gameStarted', gameStartData);
+      console.log(`Round ${result.gameState.round} started in lobby ${lobbyId}`);
+      
+      // Start hint timer
+      startHintTimer(lobbyId, lobby);
+      
+      // Start round end timer
+      const gameEndTimer = setTimeout(() => {
+        const timers = gameTimers.get(lobbyId);
+        if (timers && timers.hintTimer) {
+          clearInterval(timers.hintTimer);
+        }
+        const endResult = gameManager.endRound(lobbyId);
+        io.to(lobbyId).emit('roundEnded', endResult.gameState);
+        gameTimers.delete(lobbyId);
+      }, lobby.settings.timeLimit * 1000);
+      
+      const timers = gameTimers.get(lobbyId) || {};
+      timers.gameEndTimer = gameEndTimer;
+      gameTimers.set(lobbyId, timers);
+    } else {
+      socket.emit('lobbyError', { message: result.message });
+    }
+  });
+
+  // End game completely (host only)
+  socket.on('endGame', (data) => {
+    const { lobbyId } = data;
+    const result = gameManager.endGame(lobbyId, socket.id);
+    
+    if (result.success) {
+      const timers = gameTimers.get(lobbyId);
+      if (timers) {
+        if (timers.hintTimer) clearInterval(timers.hintTimer);
+        if (timers.gameEndTimer) clearTimeout(timers.gameEndTimer);
+        gameTimers.delete(lobbyId);
+      }
+      io.to(lobbyId).emit('gameEnded', result.gameState);
     } else {
       socket.emit('lobbyError', { message: result.message });
     }

@@ -95,12 +95,23 @@ function GamePage() {
     socket.on('gameStarted', handleGameStarted);
 
     // Set up other event listeners
+    socket.on('roundEnded', (gameStateData) => {
+      navigate(`/winner/${lobbyId}`);
+    });
+
     socket.on('gameEnded', (gameStateData) => {
       navigate(`/winner/${lobbyId}`);
     });
 
     socket.on('correctGuess', (data) => {
       setMessage(`${data.playerName} guessed correctly: ${data.guess}`);
+      // Reveal the word when guessed correctly
+      setGameState(prevState => {
+        if (prevState) {
+          return { ...prevState, currentWord: data.guess };
+        }
+        return prevState;
+      });
     });
 
     socket.on('incorrectGuess', (data) => {
@@ -186,14 +197,62 @@ function GamePage() {
     );
   }
 
+  // Check if word should be revealed
+  const isWordRevealed = message && message.includes('guessed correctly');
+  
+  // Generate word display - show word if revealed, otherwise underscores
+  const getWordDisplay = () => {
+    if (!gameState || !gameState.currentWord) return '';
+    if (isWordRevealed) {
+      // Show the actual word with spaces between letters
+      return gameState.currentWord.split('').join(' ');
+    }
+    // Show underscores
+    return '_ '.repeat(gameState.currentWord.length).trim();
+  };
+
   return (
     <div className="container">
       <h1>Guess The Word!</h1>
+      
+      {gameState && gameState.round && (
+        <div style={{ textAlign: 'center', marginBottom: '10px', color: '#666', fontSize: '18px' }}>
+          Round {gameState.round}
+        </div>
+      )}
 
       <div className="timer">
         {Math.floor(timeRemaining / 60)}:
         {(timeRemaining % 60).toString().padStart(2, '0')}
       </div>
+
+      <div style={{ 
+        textAlign: 'center', 
+        fontSize: '32px', 
+        letterSpacing: '8px', 
+        fontFamily: 'monospace',
+        margin: '20px 0',
+        color: isWordRevealed ? '#28a745' : '#667eea',
+        fontWeight: 'bold',
+        minHeight: '60px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        {getWordDisplay()}
+      </div>
+      
+      {isWordRevealed && (
+        <div style={{ 
+          textAlign: 'center', 
+          color: '#28a745', 
+          fontSize: '18px', 
+          marginTop: '10px',
+          fontWeight: '600'
+        }}>
+          ✓ Word Revealed!
+        </div>
+      )}
 
       {message && (
         <div className={message.includes('correctly') ? 'success-message' : 'error-message'}>
