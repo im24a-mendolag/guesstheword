@@ -41,12 +41,15 @@ class GameManager {
       return { success: false, message: 'Game is already in progress' };
     }
     
-    if (lobby.players.length >= lobby.settings.maxPlayers) {
-      return { success: false, message: 'Lobby is full' };
+    // Check if player is already in the lobby
+    const existingPlayer = lobby.players.find(p => p.id === playerId);
+    if (existingPlayer) {
+      // Player is already in lobby, just return the lobby (for reconnection/room joining)
+      return { success: true, lobby, alreadyInLobby: true };
     }
     
-    if (lobby.players.some(p => p.id === playerId)) {
-      return { success: false, message: 'You are already in this lobby' };
+    if (lobby.players.length >= lobby.settings.maxPlayers) {
+      return { success: false, message: 'Lobby is full' };
     }
     
     lobby.players.push({ id: playerId, name: playerName, score: 0 });

@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import io from 'socket.io-client';
-
-const socket = io('http://localhost:5000');
+import socket from '../socket';
 
 function LobbyPage() {
   const { lobbyId } = useParams();
@@ -18,12 +16,15 @@ function LobbyPage() {
 
   useEffect(() => {
     const playerName = localStorage.getItem('playerName') || 'Player';
+    
+    // Request to join/get lobby data
     socket.emit('joinLobby', { lobbyId, playerName });
 
     socket.on('lobbyJoined', (lobbyData) => {
       setLobby(lobbyData);
       setIsHost(lobbyData.hostId === socket.id);
       setSettings(lobbyData.settings);
+      setError(''); // Clear any errors
     });
 
     socket.on('lobbyUpdated', (lobbyData) => {

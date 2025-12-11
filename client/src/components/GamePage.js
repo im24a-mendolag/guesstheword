@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import io from 'socket.io-client';
-
-const socket = io('http://localhost:5000');
+import socket from '../socket';
 
 function GamePage() {
   const { lobbyId } = useParams();
@@ -13,7 +11,37 @@ function GamePage() {
   const [message, setMessage] = useState('');
   const [gameState, setGameState] = useState(null);
   const [lobby, setLobby] = useState(null);
-  const [timerInterval, setTimerInterval] = useState(null);
+  const timerIntervalRef = useRef(null);
+  const lobbyRef = useRef(null);
+
+  // Update ref when lobby changes
+  useEffect(() => {
+    lobbyRef.current = lobby;
+  }, [lobby]);
+
+  const startTimer = useCallback((gameStateData, settings) => {
+    const startTime = gameStateData.startTime || Date.now();
+    const timeLimit = settings?.timeLimit || 60;
+
+    // Clear any existing timer
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+
+    const timer = setInterval(() => {
+      const elapsed = (Date.now() - startTime) / 1000;
+      const remaining = Math.max(0, timeLimit - elapsed);
+      setTimeRemaining(Math.floor(remaining));
+
+      if (remaining <= 0) {
+        clearInterval(timer);
+        timerIntervalRef.current = null;
+      }
+    }, 100);
+
+    timerIntervalRef.current = timer;
+  }, []);
 
   useEffect(() => {
     const playerName = localStorage.getItem('playerName') || 'Player';
@@ -25,7 +53,7 @@ function GamePage() {
         setGameState(lobbyData.gameState);
         setTimeRemaining(lobbyData.gameState.timeRemaining);
         setHints(lobbyData.gameState.hints || []);
-        if (!timerInterval) {
+        if (!timerIntervalRef.current) {
           startTimer(lobbyData.gameState, lobbyData.settings);
         }
       }
@@ -36,8 +64,9 @@ function GamePage() {
       setTimeRemaining(gameStateData.timeRemaining);
       setHints([]);
       // Get lobby settings from current lobby state or request update
-      if (lobby && lobby.settings) {
-        startTimer(gameStateData, lobby.settings);
+      const currentLobby = lobbyRef.current;
+      if (currentLobby && currentLobby.settings) {
+        startTimer(gameStateData, currentLobby.settings);
       } else {
         // Request lobby data to get settings
         const playerName = localStorage.getItem('playerName') || 'Player';
@@ -69,34 +98,12 @@ function GamePage() {
       socket.off('correctGuess');
       socket.off('incorrectGuess');
       socket.off('hint');
-      if (timerInterval) {
-        clearInterval(timerInterval);
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
       }
     };
-  }, [lobbyId, navigate, timerInterval]);
-
-  const startTimer = (gameStateData, settings) => {
-    const startTime = gameStateData.startTime || Date.now();
-    const timeLimit = settings?.timeLimit || 60;
-
-    // Clear any existing timer
-    if (timerInterval) {
-      clearInterval(timerInterval);
-    }
-
-    const timer = setInterval(() => {
-      const elapsed = (Date.now() - startTime) / 1000;
-      const remaining = Math.max(0, timeLimit - elapsed);
-      setTimeRemaining(Math.floor(remaining));
-
-      if (remaining <= 0) {
-        clearInterval(timer);
-        setTimerInterval(null);
-      }
-    }, 100);
-
-    setTimerInterval(timer);
-  };
+  }, [lobbyId, navigate, startTimer]);
 
   const handleSubmitGuess = (e) => {
     e.preventDefault();

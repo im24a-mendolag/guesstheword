@@ -38,6 +38,8 @@ io.on('connection', (socket) => {
     const lobby = gameManager.createLobby(socket.id, playerName);
     socket.join(lobby.id);
     socket.emit('lobbyCreated', lobby);
+    // Also emit lobbyJoined so the client knows they're in the lobby
+    socket.emit('lobbyJoined', lobby);
     console.log(`Lobby created: ${lobby.id} by ${playerName}`);
   });
 
@@ -49,8 +51,13 @@ io.on('connection', (socket) => {
     if (result.success) {
       socket.join(lobbyId);
       socket.emit('lobbyJoined', result.lobby);
-      io.to(lobbyId).emit('lobbyUpdated', result.lobby);
-      console.log(`${playerName} joined lobby ${lobbyId}`);
+      // Only broadcast update if it's a new player joining, not a rejoin
+      if (!result.alreadyInLobby) {
+        io.to(lobbyId).emit('lobbyUpdated', result.lobby);
+        console.log(`${playerName} joined lobby ${lobbyId}`);
+      } else {
+        console.log(`${playerName} rejoined lobby ${lobbyId}`);
+      }
     } else {
       socket.emit('lobbyError', { message: result.message });
     }
