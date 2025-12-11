@@ -440,6 +440,7 @@ function startHintTimer(lobbyId, lobby) {
   }
   
   let hintIndex = lobby.gameState.hintIndex || 1; // Start from second hint (or current index)
+  const maxHints = 4; // Only show 4 hints total (1 immediately + 3 more)
   
   const hintTimer = setInterval(() => {
     const lobby = gameManager.getLobby(lobbyId);
@@ -448,7 +449,8 @@ function startHintTimer(lobbyId, lobby) {
       return;
     }
     
-    if (hintIndex < lobby.gameState.shuffledHints.length) {
+    // Only send up to 4 hints total (hintIndex is 1-based, so we check < 4)
+    if (hintIndex < maxHints && hintIndex < lobby.gameState.shuffledHints.length) {
       const hint = lobby.gameState.shuffledHints[hintIndex];
       lobby.gameState.hints.push(hint);
       lobby.gameState.hintIndex = hintIndex + 1;
