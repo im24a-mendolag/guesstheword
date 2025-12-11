@@ -51,7 +51,12 @@ function WinnerPage() {
 
     const handleLobbyError = (data) => {
       console.error('Lobby error:', data);
-      alert(data.message || 'An error occurred');
+      if (data.message === 'Lobby not found') {
+        alert('Lobby not found. You have been removed from the lobby.');
+        navigate('/');
+      } else {
+        alert(data.message || 'An error occurred');
+      }
     };
 
     socket.on('lobbyJoined', handleLobbyJoined);
@@ -79,10 +84,6 @@ function WinnerPage() {
 
   const handleBackToLobby = () => {
     navigate(`/lobby/${lobbyId}`);
-  };
-
-  const handleNewGame = () => {
-    navigate('/');
   };
 
   if (!lobby) {
@@ -166,14 +167,9 @@ function WinnerPage() {
             </button>
           )}
           {lobby.gameState.status === 'ended' && (
-            <>
-              <button onClick={handleBackToLobby} className="secondary-button">
-                Back to Lobby
-              </button>
-              <button onClick={handleNewGame}>
-                New Game
-              </button>
-            </>
+            <button onClick={handleBackToLobby} className="secondary-button">
+              Back to Lobby
+            </button>
           )}
           {lobby.gameState.status !== 'ended' && !isHost && (
             <div style={{ textAlign: 'center', color: '#666', width: '100%' }}>

@@ -98,7 +98,12 @@ function GamePage() {
 
     const handleLobbyError = (data) => {
       console.error('Lobby error:', data);
-      setMessage(data.message || 'An error occurred');
+      if (data.message === 'Lobby not found') {
+        alert('Lobby not found. You have been removed from the lobby.');
+        navigate('/');
+      } else {
+        setMessage(data.message || 'An error occurred');
+      }
     };
 
     const handleRoundEnded = (gameStateData) => {

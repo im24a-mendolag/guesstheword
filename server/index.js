@@ -34,6 +34,32 @@ const wordDatabase = new WordDatabase();
 // Store active game timers
 const gameTimers = new Map();
 
+// Helper function to handle lobby not found errors - removes player and handles host leaving
+function handleLobbyNotFound(socket, io, gameManager) {
+  const currentLobbyId = gameManager.playerToLobby.get(socket.id);
+  if (currentLobbyId) {
+    const currentLobby = gameManager.getLobby(currentLobbyId);
+    if (currentLobby) {
+      const isHost = currentLobby.hostId === socket.id;
+      const leaveResult = gameManager.leaveLobby(currentLobbyId, socket.id);
+      socket.leave(currentLobbyId);
+      
+      // If host left, kick all other players
+      if (isHost && leaveResult.hostLeft && leaveResult.kickedPlayers) {
+        leaveResult.kickedPlayers.forEach(player => {
+          const playerSocket = io.sockets.sockets.get(player.id);
+          if (playerSocket) {
+            playerSocket.leave(currentLobbyId);
+            playerSocket.emit('hostLeft', { message: 'The host has left the lobby. You have been kicked.' });
+          }
+        });
+      } else if (leaveResult.lobby) {
+        io.to(currentLobbyId).emit('lobbyUpdated', leaveResult.lobby);
+      }
+    }
+  }
+}
+
 // REST API for health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
@@ -108,6 +134,10 @@ io.on('connection', (socket) => {
       }
     } else {
       console.error(`Failed to join lobby: ${result.message}`);
+      // If lobby not found, remove player from their current lobby
+      if (result.message === 'Lobby not found') {
+        handleLobbyNotFound(socket, io, gameManager);
+      }
       socket.emit('lobbyError', { message: result.message });
     }
   });
@@ -120,6 +150,9 @@ io.on('connection', (socket) => {
     if (result.success) {
       io.to(lobbyId).emit('lobbyUpdated', result.lobby);
     } else {
+      if (result.message === 'Lobby not found') {
+        handleLobbyNotFound(socket, io, gameManager);
+      }
       socket.emit('lobbyError', { message: result.message });
     }
   });
@@ -158,6 +191,9 @@ io.on('connection', (socket) => {
       timers.gameEndTimer = gameEndTimer;
       gameTimers.set(lobbyId, timers);
     } else {
+      if (result.message === 'Lobby not found') {
+        handleLobbyNotFound(socket, io, gameManager);
+      }
       socket.emit('lobbyError', { message: result.message });
     }
   });
@@ -205,6 +241,9 @@ io.on('connection', (socket) => {
         socket.emit('incorrectGuess', { message: 'Incorrect guess!' });
       }
     } else {
+      if (result.message === 'Lobby not found') {
+        handleLobbyNotFound(socket, io, gameManager);
+      }
       socket.emit('lobbyError', { message: result.message });
     }
   });
@@ -242,6 +281,9 @@ io.on('connection', (socket) => {
       timers.gameEndTimer = gameEndTimer;
       gameTimers.set(lobbyId, timers);
     } else {
+      if (result.message === 'Lobby not found') {
+        handleLobbyNotFound(socket, io, gameManager);
+      }
       socket.emit('lobbyError', { message: result.message });
     }
   });
@@ -252,6 +294,7 @@ io.on('connection', (socket) => {
     const lobby = gameManager.getLobby(lobbyId);
     
     if (!lobby) {
+      handleLobbyNotFound(socket, io, gameManager);
       socket.emit('lobbyError', { message: 'Lobby not found' });
       return;
     }

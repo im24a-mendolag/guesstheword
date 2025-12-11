@@ -40,7 +40,12 @@ function LobbyPage() {
 
     socket.on('lobbyError', (data) => {
       console.error('Lobby error:', data);
-      setError(data.message || 'An error occurred');
+      if (data.message === 'Lobby not found') {
+        alert('Lobby not found. You have been removed from the lobby.');
+        navigate('/');
+      } else {
+        setError(data.message || 'An error occurred');
+      }
     });
     
     // Log connection status
