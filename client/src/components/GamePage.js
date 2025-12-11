@@ -48,29 +48,37 @@ function GamePage() {
     socket.emit('joinLobby', { lobbyId, playerName });
 
     socket.on('lobbyJoined', (lobbyData) => {
+      console.log('Lobby joined in GamePage:', lobbyData);
       setLobby(lobbyData);
       if (lobbyData.gameState.status === 'playing') {
+        console.log('Game is already playing, setting up game state');
         setGameState(lobbyData.gameState);
-        setTimeRemaining(lobbyData.gameState.timeRemaining);
+        setTimeRemaining(lobbyData.gameState.timeRemaining || lobbyData.settings?.timeLimit || 60);
         setHints(lobbyData.gameState.hints || []);
-        if (!timerIntervalRef.current) {
+        if (!timerIntervalRef.current && lobbyData.gameState.startTime) {
           startTimer(lobbyData.gameState, lobbyData.settings);
         }
       }
     });
 
     socket.on('gameStarted', (gameStateData) => {
+      console.log('Game started event received:', gameStateData);
       setGameState(gameStateData);
-      setTimeRemaining(gameStateData.timeRemaining);
+      setTimeRemaining(gameStateData.timeRemaining || gameStateData.settings?.timeLimit || 60);
       setHints([]);
-      // Get lobby settings from current lobby state or request update
-      const currentLobby = lobbyRef.current;
-      if (currentLobby && currentLobby.settings) {
-        startTimer(gameStateData, currentLobby.settings);
+      
+      // Use settings from gameStateData if available, otherwise from lobby
+      const settings = gameStateData.settings || lobbyRef.current?.settings || { timeLimit: 60, hintInterval: 15 };
+      
+      if (gameStateData.startTime) {
+        startTimer(gameStateData, settings);
       } else {
-        // Request lobby data to get settings
-        const playerName = localStorage.getItem('playerName') || 'Player';
-        socket.emit('joinLobby', { lobbyId, playerName });
+        // Fallback: create a new startTime if not provided
+        const gameStateWithTime = {
+          ...gameStateData,
+          startTime: Date.now()
+        };
+        startTimer(gameStateWithTime, settings);
       }
     });
 
@@ -113,10 +121,16 @@ function GamePage() {
     setGuess('');
   };
 
+  // Show loading if game hasn't started yet
   if (!gameState || gameState.status !== 'playing') {
     return (
       <div className="container loading">
-        Waiting for game to start...
+        {gameState?.status === 'ended' ? 'Game has ended' : 'Waiting for game to start...'}
+        {gameState && (
+          <div style={{ marginTop: '20px', color: '#666' }}>
+            Status: {gameState.status}
+          </div>
+        )}
       </div>
     );
   }

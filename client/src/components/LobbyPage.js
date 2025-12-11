@@ -33,7 +33,8 @@ function LobbyPage() {
       setSettings(lobbyData.settings);
     });
 
-    socket.on('gameStarted', () => {
+    socket.on('gameStarted', (gameStateData) => {
+      console.log('Game started, navigating to game page');
       navigate(`/game/${lobbyId}`);
     });
 
