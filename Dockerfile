@@ -2,7 +2,7 @@
 FROM node:18-alpine AS client-builder
 WORKDIR /app/client
 COPY client/package*.json ./
-RUN npm ci
+RUN npm install
 COPY client/ ./
 RUN npm run build
 
@@ -15,7 +15,8 @@ COPY server/ ./server/
 COPY package*.json ./
 
 # Install server dependencies only
-RUN npm ci --only=production
+# Use npm install instead of npm ci for more flexibility with lock files
+RUN npm install --only=production --omit=dev
 
 # Copy built React app from builder
 COPY --from=client-builder /app/client/build ./client/build
