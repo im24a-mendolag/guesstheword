@@ -1,15 +1,15 @@
 class WordDatabase {
   constructor() {
     // Word list with hints
-    this.words = [
+    this.words = 
+    [
       {
         word: "ELEPHANT",
         hints: [
           "It's a large mammal",
           "It has a trunk",
           "It's found in Africa and Asia",
-          "It's gray in color",
-          "It has big ears"
+          "It's gray in color"
         ]
       },
       {
@@ -18,8 +18,7 @@ class WordDatabase {
           "It's an electronic device",
           "You use it to browse the internet",
           "It has a keyboard and screen",
-          "It processes data",
-          "It runs software"
+          "It processes data"
         ]
       },
       {
@@ -28,8 +27,7 @@ class WordDatabase {
           "It's a natural landform",
           "It's very tall",
           "People climb it",
-          "It's made of rock",
-          "It's higher than a hill"
+          "It's made of rock"
         ]
       },
       {
@@ -38,8 +36,7 @@ class WordDatabase {
           "It's a large body of water",
           "It's saltwater",
           "It covers most of Earth",
-          "It's home to many creatures",
-          "It has waves"
+          "It's home to many creatures"
         ]
       },
       {
@@ -48,8 +45,7 @@ class WordDatabase {
           "It's a place with books",
           "People go there to read",
           "It's usually quiet",
-          "It has many shelves",
-          "You can borrow books from here"
+          "It has many shelves"
         ]
       },
       {
@@ -58,8 +54,7 @@ class WordDatabase {
           "It's an insect",
           "It has colorful wings",
           "It starts as a caterpillar",
-          "It flies from flower to flower",
-          "It's very delicate"
+          "It flies from flower to flower"
         ]
       },
       {
@@ -68,8 +63,7 @@ class WordDatabase {
           "It's a communication device",
           "You use it to call people",
           "It has numbers on it",
-          "It can be mobile or landline",
-          "It rings when someone calls"
+          "It can be mobile or landline"
         ]
       },
       {
@@ -78,8 +72,7 @@ class WordDatabase {
           "It's an outdoor space",
           "People grow plants here",
           "It can have flowers or vegetables",
-          "It needs water and sunlight",
-          "It's a peaceful place"
+          "It needs water and sunlight"
         ]
       },
       {
@@ -88,8 +81,7 @@ class WordDatabase {
           "It's an input device",
           "It has letters and numbers",
           "You type on it",
-          "It's used with computers",
-          "It has QWERTY layout"
+          "It's used with computers"
         ]
       },
       {
@@ -98,8 +90,7 @@ class WordDatabase {
           "It appears in the sky",
           "It has many colors",
           "It appears after rain",
-          "It's an arc shape",
-          "It has red, orange, yellow, green, blue, indigo, violet"
+          "It's an arc shape"
         ]
       },
       {
@@ -108,8 +99,7 @@ class WordDatabase {
           "It's valuable",
           "Pirates search for it",
           "It's often hidden",
-          "It can be gold or jewels",
-          "It's in a chest"
+          "It can be gold or jewels"
         ]
       },
       {
@@ -118,8 +108,7 @@ class WordDatabase {
           "It's a mountain",
           "It can erupt",
           "It spews lava",
-          "It's very hot",
-          "It's dangerous when active"
+          "It's very hot"
         ]
       },
       {
@@ -128,8 +117,7 @@ class WordDatabase {
           "It's used to look at stars",
           "It makes distant things appear closer",
           "Astronomers use it",
-          "It has lenses",
-          "It's pointed at the sky"
+          "It has lenses"
         ]
       },
       {
@@ -138,8 +126,7 @@ class WordDatabase {
           "It's an exciting experience",
           "It involves exploring",
           "It can be dangerous",
-          "It's thrilling",
-          "People seek it out"
+          "It's thrilling"
         ]
       },
       {
@@ -148,8 +135,7 @@ class WordDatabase {
           "It's something unknown",
           "Detectives solve it",
           "It's puzzling",
-          "It needs investigation",
-          "It's secretive"
+          "It needs investigation"
         ]
       }
     ];

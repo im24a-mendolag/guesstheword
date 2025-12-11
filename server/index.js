@@ -164,16 +164,33 @@ io.on('connection', (socket) => {
     
     if (result.success) {
       const lobby = gameManager.getLobby(lobbyId);
-      // Send gameState with settings so clients can start the timer
+      
+      // Prepare and send first hint before emitting gameStarted
+      const wordData = lobby.gameState.wordData;
+      if (wordData && wordData.hints && wordData.hints.length > 0) {
+        // Randomize the order of hints for this round
+        lobby.gameState.shuffledHints = shuffleArray(wordData.hints);
+        const firstHint = lobby.gameState.shuffledHints[0];
+        lobby.gameState.hints.push(firstHint);
+        lobby.gameState.hintIndex = 1;
+      }
+      
+      // Send gameState with settings and first hint so clients can start the timer
       const gameStartData = {
-        ...result.gameState,
+        ...lobby.gameState,
         settings: lobby.settings,
-        startTime: result.gameState.startTime || Date.now()
+        startTime: lobby.gameState.startTime || Date.now()
       };
       io.to(lobbyId).emit('gameStarted', gameStartData);
       console.log(`Game started in lobby ${lobbyId}`);
       
-      // Start hint timer
+      // Send first hint event as well (for clients that might have missed it in gameState)
+      if (lobby.gameState.hints.length > 0) {
+        io.to(lobbyId).emit('hint', lobby.gameState.hints[0]);
+        console.log(`Hint 1 sent immediately to lobby ${lobbyId}: ${lobby.gameState.hints[0]}`);
+      }
+      
+      // Start hint timer (will start from second hint)
       startHintTimer(lobbyId, lobby);
       
       // Start round end timer
@@ -255,15 +272,32 @@ io.on('connection', (socket) => {
     
     if (result.success) {
       const lobby = gameManager.getLobby(lobbyId);
+      
+      // Prepare and send first hint before emitting gameStarted
+      const wordData = lobby.gameState.wordData;
+      if (wordData && wordData.hints && wordData.hints.length > 0) {
+        // Randomize the order of hints for this round
+        lobby.gameState.shuffledHints = shuffleArray(wordData.hints);
+        const firstHint = lobby.gameState.shuffledHints[0];
+        lobby.gameState.hints.push(firstHint);
+        lobby.gameState.hintIndex = 1;
+      }
+      
       const gameStartData = {
-        ...result.gameState,
+        ...lobby.gameState,
         settings: lobby.settings,
         startTime: result.gameState.startTime || Date.now()
       };
       io.to(lobbyId).emit('gameStarted', gameStartData);
       console.log(`Round ${result.gameState.round} started in lobby ${lobbyId}`);
       
-      // Start hint timer
+      // Send first hint event as well
+      if (lobby.gameState.hints.length > 0) {
+        io.to(lobbyId).emit('hint', lobby.gameState.hints[0]);
+        console.log(`Hint 1 sent immediately to lobby ${lobbyId}: ${lobby.gameState.hints[0]}`);
+      }
+      
+      // Start hint timer (will start from second hint)
       startHintTimer(lobbyId, lobby);
       
       // Start round end timer
@@ -393,18 +427,19 @@ function startHintTimer(lobbyId, lobby) {
     return;
   }
   
-  // Randomize the order of hints for this round
-  // Always create a new shuffled array (don't reuse from previous round)
-  lobby.gameState.shuffledHints = shuffleArray(wordData.hints);
+  // If shuffledHints already exists (first hint was sent before gameStarted), use it
+  // Otherwise, create a new shuffled array
+  if (!lobby.gameState.shuffledHints) {
+    lobby.gameState.shuffledHints = shuffleArray(wordData.hints);
+    // Send first hint immediately if not already sent
+    const firstHint = lobby.gameState.shuffledHints[0];
+    lobby.gameState.hints.push(firstHint);
+    lobby.gameState.hintIndex = 1;
+    io.to(lobbyId).emit('hint', firstHint);
+    console.log(`Hint 1 sent immediately to lobby ${lobbyId}: ${firstHint}`);
+  }
   
-  // Send first hint immediately
-  const firstHint = lobby.gameState.shuffledHints[0];
-  lobby.gameState.hints.push(firstHint);
-  lobby.gameState.hintIndex = 1;
-  io.to(lobbyId).emit('hint', firstHint);
-  console.log(`Hint 1 sent immediately to lobby ${lobbyId}: ${firstHint}`);
-  
-  let hintIndex = 1; // Start from second hint
+  let hintIndex = lobby.gameState.hintIndex || 1; // Start from second hint (or current index)
   
   const hintTimer = setInterval(() => {
     const lobby = gameManager.getLobby(lobbyId);

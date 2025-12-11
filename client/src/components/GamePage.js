@@ -75,7 +75,8 @@ function GamePage() {
       setGuessHistory([]);
       setGameState(gameStateData);
       setTimeRemaining(gameStateData.timeRemaining || settings.timeLimit);
-      setHints([]);
+      // Use hints from gameState if available (includes first hint), otherwise start empty
+      setHints(gameStateData.hints || []);
       
       // Clear any existing timer
       if (timerIntervalRef.current) {
