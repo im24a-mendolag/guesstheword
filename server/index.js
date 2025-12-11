@@ -86,22 +86,25 @@ io.on('connection', (socket) => {
       socket.join(lobbyId);
       // Always send lobbyJoined so client gets current game state
       socket.emit('lobbyJoined', result.lobby);
+      
+      // If game is already playing, send gameStarted event to this client
+      // This handles both new joins and rejoins during active games
+      if (result.lobby.gameState.status === 'playing') {
+        const gameStartData = {
+          ...result.lobby.gameState,
+          settings: result.lobby.settings,
+          startTime: result.lobby.gameState.startTime || Date.now()
+        };
+        socket.emit('gameStarted', gameStartData);
+        console.log(`Sent gameStarted to ${result.alreadyInLobby ? 'rejoining' : 'joining'} player ${playerName}`);
+      }
+      
       // Only broadcast update if it's a new player joining, not a rejoin
       if (!result.alreadyInLobby) {
         io.to(lobbyId).emit('lobbyUpdated', result.lobby);
         console.log(`${playerName} joined lobby ${lobbyId} (${result.lobby.players.length} players)`);
       } else {
         console.log(`${playerName} rejoined lobby ${lobbyId}`);
-        // If game is already playing, also send gameStarted event for this client
-        if (result.lobby.gameState.status === 'playing') {
-          const gameStartData = {
-            ...result.lobby.gameState,
-            settings: result.lobby.settings,
-            startTime: result.lobby.gameState.startTime || Date.now()
-          };
-          socket.emit('gameStarted', gameStartData);
-          console.log(`Sent gameStarted to rejoining player ${playerName}`);
-        }
       }
     } else {
       console.error(`Failed to join lobby: ${result.message}`);

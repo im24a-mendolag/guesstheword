@@ -44,33 +44,39 @@ function GamePage() {
   }, []);
 
   useEffect(() => {
-    const playerName = localStorage.getItem('playerName') || 'Player';
-    socket.emit('joinLobby', { lobbyId, playerName });
-
-    socket.on('lobbyJoined', (lobbyData) => {
+    // Set up all event listeners FIRST before emitting joinLobby
+    const handleLobbyJoined = (lobbyData) => {
       console.log('Lobby joined in GamePage:', lobbyData);
       setLobby(lobbyData);
       if (lobbyData.gameState.status === 'playing') {
         console.log('Game is already playing, setting up game state');
+        const settings = lobbyData.settings || { timeLimit: 60, hintInterval: 15 };
         setGameState(lobbyData.gameState);
-        setTimeRemaining(lobbyData.gameState.timeRemaining || lobbyData.settings?.timeLimit || 60);
+        setTimeRemaining(lobbyData.gameState.timeRemaining || settings.timeLimit);
         setHints(lobbyData.gameState.hints || []);
         if (!timerIntervalRef.current && lobbyData.gameState.startTime) {
-          startTimer(lobbyData.gameState, lobbyData.settings);
+          console.log('Starting timer from lobbyJoined');
+          startTimer(lobbyData.gameState, settings);
         }
       }
-    });
+    };
 
-    socket.on('gameStarted', (gameStateData) => {
+    const handleGameStarted = (gameStateData) => {
       console.log('Game started event received:', gameStateData);
-      setGameState(gameStateData);
-      setTimeRemaining(gameStateData.timeRemaining || gameStateData.settings?.timeLimit || 60);
-      setHints([]);
-      
-      // Use settings from gameStateData if available, otherwise from lobby
       const settings = gameStateData.settings || lobbyRef.current?.settings || { timeLimit: 60, hintInterval: 15 };
       
+      setGameState(gameStateData);
+      setTimeRemaining(gameStateData.timeRemaining || settings.timeLimit);
+      setHints([]);
+      
+      // Clear any existing timer
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+      
       if (gameStateData.startTime) {
+        console.log('Starting timer from gameStarted');
         startTimer(gameStateData, settings);
       } else {
         // Fallback: create a new startTime if not provided
@@ -80,8 +86,13 @@ function GamePage() {
         };
         startTimer(gameStateWithTime, settings);
       }
-    });
+    };
 
+    // Register event listeners
+    socket.on('lobbyJoined', handleLobbyJoined);
+    socket.on('gameStarted', handleGameStarted);
+
+    // Set up other event listeners
     socket.on('gameEnded', (gameStateData) => {
       navigate(`/winner/${lobbyId}`);
     });
@@ -99,9 +110,13 @@ function GamePage() {
       setHints((prev) => [...prev, hint]);
     });
 
+    // Now emit joinLobby after all listeners are set up
+    const playerName = localStorage.getItem('playerName') || 'Player';
+    socket.emit('joinLobby', { lobbyId, playerName });
+
     return () => {
-      socket.off('lobbyJoined');
-      socket.off('gameStarted');
+      socket.off('lobbyJoined', handleLobbyJoined);
+      socket.off('gameStarted', handleGameStarted);
       socket.off('gameEnded');
       socket.off('correctGuess');
       socket.off('incorrectGuess');
