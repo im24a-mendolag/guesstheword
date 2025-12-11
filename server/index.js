@@ -285,18 +285,46 @@ io.on('connection', (socket) => {
     if (result.success) {
       socket.leave(lobbyId);
       socket.emit('lobbyLeft');
-      io.to(lobbyId).emit('lobbyUpdated', result.lobby);
+      
+      // If host left, kick all other players
+      if (result.hostLeft && result.kickedPlayers) {
+        result.kickedPlayers.forEach(player => {
+          const playerSocket = io.sockets.sockets.get(player.id);
+          if (playerSocket) {
+            playerSocket.leave(lobbyId);
+            playerSocket.emit('hostLeft', { message: 'The host has left the lobby. You have been kicked.' });
+          }
+        });
+      } else {
+        io.to(lobbyId).emit('lobbyUpdated', result.lobby);
+      }
     }
   });
 
   // Disconnect handling
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
+    const lobbyId = gameManager.playerToLobby.get(socket.id);
+    const lobby = lobbyId ? gameManager.getLobby(lobbyId) : null;
+    const isHost = lobby && lobby.hostId === socket.id;
+    const otherPlayers = lobby ? lobby.players.filter(p => p.id !== socket.id) : [];
+    
     const result = gameManager.handleDisconnect(socket.id);
     
     if (result) {
-      result.forEach(({ lobbyId, lobby }) => {
-        io.to(lobbyId).emit('lobbyUpdated', lobby);
+      result.forEach(({ lobbyId, lobby: updatedLobby }) => {
+        if (updatedLobby === null && isHost) {
+          // Host disconnected, kick all other players
+          otherPlayers.forEach(player => {
+            const playerSocket = io.sockets.sockets.get(player.id);
+            if (playerSocket) {
+              playerSocket.leave(lobbyId);
+              playerSocket.emit('hostLeft', { message: 'The host has disconnected. You have been kicked.' });
+            }
+          });
+        } else if (updatedLobby) {
+          io.to(lobbyId).emit('lobbyUpdated', updatedLobby);
+        }
       });
     }
   });

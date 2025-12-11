@@ -59,11 +59,19 @@ function LobbyPage() {
       setError('Failed to connect to server. Please check your connection.');
     });
 
+    const handleHostLeft = (data) => {
+      alert(data.message || 'The host has left the lobby.');
+      navigate('/');
+    };
+
+    socket.on('hostLeft', handleHostLeft);
+
     return () => {
       socket.off('lobbyJoined');
       socket.off('lobbyUpdated');
       socket.off('gameStarted');
       socket.off('lobbyError');
+      socket.off('hostLeft', handleHostLeft);
     };
   }, [lobbyId, navigate]);
 

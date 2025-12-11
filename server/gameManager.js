@@ -105,6 +105,12 @@ class GameManager {
     // Select a random word
     const wordData = wordDatabase.getRandomWord();
     
+    // Pick a random letter to reveal at the start
+    const word = wordData.word;
+    const randomIndex = Math.floor(Math.random() * word.length);
+    const revealedLetter = word[randomIndex];
+    const revealedLetterIndex = randomIndex;
+    
     // Start first round
     lobby.gameState = {
       status: 'playing',
@@ -116,7 +122,9 @@ class GameManager {
       startTime: Date.now(),
       winner: null,
       round: 1,
-      roundWinner: null
+      roundWinner: null,
+      revealedLetter: revealedLetter,
+      revealedLetterIndex: revealedLetterIndex
     };
     
     // Reset player scores only on first round
@@ -199,6 +207,12 @@ class GameManager {
     // Select a new random word
     const wordData = wordDatabase.getRandomWord();
     
+    // Pick a random letter to reveal at the start
+    const word = wordData.word;
+    const randomIndex = Math.floor(Math.random() * word.length);
+    const revealedLetter = word[randomIndex];
+    const revealedLetterIndex = randomIndex;
+    
     // Start next round
     lobby.gameState = {
       status: 'playing',
@@ -210,7 +224,9 @@ class GameManager {
       startTime: Date.now(),
       winner: null,
       round: lobby.gameState.round + 1,
-      roundWinner: null
+      roundWinner: null,
+      revealedLetter: revealedLetter,
+      revealedLetterIndex: revealedLetterIndex
     };
     
     return { success: true, gameState: lobby.gameState };
@@ -249,23 +265,19 @@ class GameManager {
       return { success: false, message: 'Player not in lobby' };
     }
     
-    // If host leaves, assign new host or disband lobby
+    // If host leaves, kick all other players and disband lobby
     if (lobby.hostId === playerId) {
-      if (lobby.players.length === 1) {
-        // Only host in lobby, disband it
-        this.lobbies.delete(lobbyId);
-        this.playerToLobby.delete(playerId);
-        return { success: true, lobby: null };
-      } else {
-        // Assign new host
-        lobby.players.splice(playerIndex, 1);
-        lobby.hostId = lobby.players[0].id;
-      }
+      // Remove all players from playerToLobby mapping
+      lobby.players.forEach(player => {
+        this.playerToLobby.delete(player.id);
+      });
+      // Delete the lobby
+      this.lobbies.delete(lobbyId);
+      return { success: true, lobby: null, hostLeft: true, kickedPlayers: lobby.players.filter(p => p.id !== playerId) };
     } else {
       lobby.players.splice(playerIndex, 1);
+      this.playerToLobby.delete(playerId);
     }
-    
-    this.playerToLobby.delete(playerId);
     
     return { success: true, lobby };
   }

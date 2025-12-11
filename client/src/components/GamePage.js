@@ -142,6 +142,11 @@ function GamePage() {
       }, 100);
     };
 
+    const handleHostLeft = (data) => {
+      alert(data.message || 'The host has left the lobby.');
+      navigate('/');
+    };
+
     // Register event listeners
     socket.on('lobbyJoined', handleLobbyJoined);
     socket.on('gameStarted', handleGameStarted);
@@ -152,6 +157,7 @@ function GamePage() {
     socket.on('incorrectGuess', handleIncorrectGuess);
     socket.on('hint', handleHint);
     socket.on('playerGuess', handlePlayerGuess);
+    socket.on('hostLeft', handleHostLeft);
 
     // Now emit joinLobby after all listeners are set up
     const playerName = localStorage.getItem('playerName') || 'Player';
@@ -192,6 +198,7 @@ function GamePage() {
       socket.off('incorrectGuess', handleIncorrectGuess);
       socket.off('hint', handleHint);
       socket.off('playerGuess', handlePlayerGuess);
+      socket.off('hostLeft', handleHostLeft);
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
         timerIntervalRef.current = null;
@@ -232,15 +239,22 @@ function GamePage() {
   // Check if word should be revealed
   const isWordRevealed = message && message.includes('guessed correctly');
   
-  // Generate word display - show word if revealed, otherwise underscores
+  // Generate word display - show word if revealed, otherwise show underscores with one revealed letter
   const getWordDisplay = () => {
     if (!gameState || !gameState.currentWord) return '';
     if (isWordRevealed) {
       // Show the actual word with spaces between letters
       return gameState.currentWord.split('').join(' ');
     }
-    // Show underscores
-    return '_ '.repeat(gameState.currentWord.length).trim();
+    // Show underscores with one random letter revealed at the start
+    const word = gameState.currentWord;
+    const revealedIndex = gameState.revealedLetterIndex !== undefined ? gameState.revealedLetterIndex : -1;
+    return word.split('').map((letter, index) => {
+      if (index === revealedIndex) {
+        return letter;
+      }
+      return '_';
+    }).join(' ');
   };
 
   return (
