@@ -118,6 +118,7 @@ class GameManager {
       wordData: wordData, // Store full word data including hints
       hints: [],
       hintIndex: 0,
+      shuffledHints: null, // Will be set when hint timer starts
       timeRemaining: lobby.settings.timeLimit,
       startTime: Date.now(),
       winner: null,
@@ -220,6 +221,7 @@ class GameManager {
       wordData: wordData,
       hints: [],
       hintIndex: 0,
+      shuffledHints: null, // Will be set when hint timer starts
       timeRemaining: lobby.settings.timeLimit,
       startTime: Date.now(),
       winner: null,

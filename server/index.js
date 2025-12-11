@@ -373,6 +373,16 @@ io.on('connection', (socket) => {
   });
 });
 
+// Helper function to shuffle an array (Fisher-Yates algorithm)
+function shuffleArray(array) {
+  const shuffled = [...array]; // Create a copy to avoid mutating the original
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 // Function to start hint timer for a lobby
 function startHintTimer(lobbyId, lobby) {
   const gameState = lobby.gameState;
@@ -383,8 +393,12 @@ function startHintTimer(lobbyId, lobby) {
     return;
   }
   
+  // Randomize the order of hints for this round
+  // Always create a new shuffled array (don't reuse from previous round)
+  lobby.gameState.shuffledHints = shuffleArray(wordData.hints);
+  
   // Send first hint immediately
-  const firstHint = wordData.hints[0];
+  const firstHint = lobby.gameState.shuffledHints[0];
   lobby.gameState.hints.push(firstHint);
   lobby.gameState.hintIndex = 1;
   io.to(lobbyId).emit('hint', firstHint);
@@ -399,8 +413,8 @@ function startHintTimer(lobbyId, lobby) {
       return;
     }
     
-    if (hintIndex < wordData.hints.length) {
-      const hint = wordData.hints[hintIndex];
+    if (hintIndex < lobby.gameState.shuffledHints.length) {
+      const hint = lobby.gameState.shuffledHints[hintIndex];
       lobby.gameState.hints.push(hint);
       lobby.gameState.hintIndex = hintIndex + 1;
       
