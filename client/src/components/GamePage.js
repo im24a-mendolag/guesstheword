@@ -388,7 +388,7 @@ function GamePage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmitGuess} className="guess-input-container">
+      <form onSubmit={handleSubmitGuess} className="guess-input-container" autoComplete="off">
         <div className="input-group">
           <label htmlFor="guess">Your Guess</label>
           <input
@@ -399,6 +399,7 @@ function GamePage() {
             placeholder="Enter your guess"
             disabled={timeRemaining === 0}
             autoFocus
+            autoComplete="off"
           />
         </div>
         <button type="submit" disabled={timeRemaining === 0}>
